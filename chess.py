@@ -4,7 +4,9 @@ from itertools import chain
 # requires pympler
 # from pympler.tracker import SummaryTracker
 
-# Console window needs to be at least 80x17 !
+#    TODO
+#     * walidacja ruchów nie bangla
+#     * definicje ruchów pozostałych pionków
 
 
 class ShellClass(object):
@@ -82,6 +84,28 @@ class ChessClass(object):
             self.spawn_minion('white', 'pawn', i, 6)
             self.spawn_minion('black', 'pawn', i, 1)
 
+    def display(self):
+        self.draw_indexes()
+        for y in reversed(range(8)):
+            for x in range(8):
+                Minion = self.board[y][x]
+                color = self.color_as_number(Minion)
+                if (x, y) == Cursor.pointed():
+                    screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(color) | curses.A_BOLD)
+                elif (x, y) == Cursor.selected():
+                    screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(4) | curses.A_BOLD)
+                else:
+                    screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(color))
+
+    def move(self, x1, y1, x2, y2):
+        if self.move_valid(x1, y1, x2, y2) is True:
+            tmp = copy(self.board[y1][x1])
+            self.board[y2][x2] = tmp
+            self.board[y1][x1] = Empty()
+            Cursor.unselect()
+            Shell.add_log('{0} Moved: {1} > {2}'.format(
+                self.board[y2][x2].name, self.chess_notation(x1, y1), self.chess_notation(x2, y2)))
+
     def move_valid(self, x1, y1, x2, y2):
         screen.addstr(12, 1, 'Validating move...')
         moves = self.board[y1][x1].valid_moves
@@ -93,13 +117,13 @@ class ChessClass(object):
                 if self.collision(fields[:index]) is False and self.last_field_stuff(x1, y1, x2, y2) is True:
                     return True
         else:
-            screen.addstr(13, 2, 'Move is not valid')
+            screen.addstr(12, 2, 'Move is not valid')
             return False
 
     def collision(self, fields):
         for field in fields[:-1]:
             if not field.is_empty():
-                screen.addstr(14, 2, 'Collision detected')
+                screen.addstr(12, 2, 'Collision detected')
                 return True
         else:
             return False
@@ -111,9 +135,6 @@ class ChessClass(object):
             return False
         else:
             return True
-
-    def is_empty(field):
-        return True if field.name in ('empty', 'Empty') else False
 
     def spawn_minion(self, color, name, x, y):
         if self.spawn_validation(color, name, x, y) is False:
@@ -127,41 +148,18 @@ class ChessClass(object):
 
     def spawn_validation(self, color, name, x, y):
         if color not in ('white', 'White', 'black', 'Black'):
-            screen.addstr(17, 2, 'Invalid color')
+            screen.addstr(13, 2, 'Invalid color')
             return False
         elif name not in (
                 'Rook', 'rook', 'Bishop', 'bishop', 'Knight', 'knight',
                 'Queen', 'queen', 'King', 'king', 'Pawn', 'pawn'):
-            screen.addstr(17, 2, 'Invalid minion name')
+            screen.addstr(13, 2, 'Invalid minion name')
             return False
         elif x * y < 0 or x > 7 or y > 7:
-            screen.addstr(17, 2, 'Out of range')
+            screen.addstr(13, 2, 'Out of range')
             return False
         else:
             return True
-
-    def move(self, x1, y1, x2, y2):
-        if self.move_valid(x1, y1, x2, y2):
-            tmp = copy(self.board[y1][x1])
-            self.board[y2][x2] = tmp
-            self.board[y1][x1] = Empty()
-            Cursor.unselect()
-            Shell.add_log('{0} Moved: {1} > {2}'.format(self.board[y2][x2].name, self.chess_notation(x1, y1), self.chess_notation(x2, y2)))
-        else:
-            screen.addstr(19, 2, 'Niedozwolony ruch')
-
-    def display(self):
-        self.draw_indexes()
-        for y in reversed(range(8)):
-            for x in range(8):
-                Minion = self.board[y][x]
-                color = self.color_as_number(Minion)
-                if (x, y) == Cursor.pointed():
-                    screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(color) | curses.A_BOLD)
-                elif (x, y) == Cursor.selected():
-                    screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(4) | curses.A_BOLD)
-                else:
-                    screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(color))
 
     def color_as_number(self, Minion):
         if Minion.color is 'black':
@@ -177,6 +175,9 @@ class ChessClass(object):
             screen.addstr(10, 3 + (i * 2), chr(97 + i))
             screen.addstr(2 + i, 1, str(8 - i))
             screen.addstr(2 + i, 19, str(8 - i))
+
+    def is_empty(field):
+        return True if field.name in ('empty', 'Empty') else False
 
     def chess_notation(self, index_x, index_y):
         return ''.join([chr(97 + index_x), chr(8 - index_y + 48)])
@@ -194,12 +195,12 @@ class Minion(object):
     def info(self):
         return ', '.join(map(str, [self.name, self.color]))
 
-    def __del__(self):
-        try:
-            Shell.add_log('Deleted {0}'.format(self.name))
-        except Exception:
-            pass
-            # print('Deleted {0}'.format(self.name))
+    # def __del__(self):
+    #     try:
+    #         Shell.add_log('Deleted {0}'.format(self.name))
+    #     except Exception:
+    #         pass
+    #         # print('Deleted {0}'.format(self.name))
 
 
 ########################
@@ -219,7 +220,6 @@ class Rook(Minion):
     def __init__(self, color):
         super().__init__(color)
         self.name = 'rook'
-        self.define_valid_moves_mask()
         self.symbol = 'R'
 
     def define_valid_moves_mask(self):
@@ -240,12 +240,12 @@ class CursorClass(object):
         self.index_y = 0
         self.shift_x = 3
         self.shift_y = 2
-        # self.symbol = '.'
         self.screen_size_x = 16
         self.screen_size_y = 8
         self.selected_x = None
         self.selected_y = None
         self.sel = False
+        # self.symbol = '.'
 
     def move(self, delta_x, delta_y):
         self.x = (self.x + (delta_x) * 2) % self.screen_size_x
@@ -290,6 +290,9 @@ class CursorClass(object):
     def selected(self):
         return (self.selected_x, self.selected_y)
 
+    def any_selected(self):
+        return self.sel
+
 
 ###########################
 def key_manager(key, CursorClass):
@@ -304,7 +307,8 @@ def key_manager(key, CursorClass):
     elif key == ord('g'):
         Cursor.select()
     elif key == ord('h'):
-        Chess.move(*chain(Cursor.selected(), Cursor.pointed()))
+        if Cursor.any_selected():
+            Chess.move(*chain(Cursor.selected(), Cursor.pointed()))
 
 ###########################
 # tracker = SummaryTracker()
