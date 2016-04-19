@@ -4,6 +4,8 @@ from itertools import chain
 # requires pympler
 # from pympler.tracker import SummaryTracker
 
+# Console window needs to be at least 80x17 !
+
 
 class ShellClass(object):
     def __init__(self):
@@ -20,7 +22,11 @@ class ShellClass(object):
             for x in range(self.width):
                 screen.addstr(self.shift_y + y, self.shift_x + x, '*')
 
-    def add(self, string):
+    def add_log(self, string=''):
+        while len(string) > self.width:
+            del(self.log[0])
+            self.log.append(string[:self.width])
+            string = string[self.width:]
         del(self.log[0])
         self.log.append(string)
 
@@ -28,6 +34,12 @@ class ShellClass(object):
         screen.addstr(self.shift_y - 1, self.shift_x + 2, '{0} mode'.format(self.mode))
         for i, string in enumerate(self.log):
             screen.addstr(self.shift_y + i, self.shift_x, string)
+
+    def print_info(self):
+        self.add_log()
+        self.add_log('wsad moves cursor')
+        self.add_log("press 'g' to select field")
+        self.add_log("press 'h' to move selected pawn to cursor current location")
 
     # def input(self):
     #     self.mode = 'Input'
@@ -47,7 +59,7 @@ class ShellClass(object):
 class ChessClass(object):
     def __init__(self):
         self.board = [[Empty() for i in range(8)] for i in range(8)]
-        self.draw_scene()
+        self.draw_indexes()
 
     def init_pawns(self):
         self.spawn_minion('white', 'rook', 0, 7)
@@ -109,7 +121,7 @@ class ChessClass(object):
         else:
             if name is 'rook' or name is 'Rook':
                 self.board[y][x] = Rook(color)
-                Shell.add('Created Minion: {0} {1} at {2}'.format(
+                Shell.add_log('Created Minion: {0} {1} at {2}'.format(
                     self.board[y][x].color, self.board[y][x].name, self.chess_notation(x, y)))
                 return True
 
@@ -134,12 +146,12 @@ class ChessClass(object):
             self.board[y2][x2] = tmp
             self.board[y1][x1] = Empty()
             Cursor.unselect()
-            Shell.add('{0} Moved: {1} > {2}'.format(self.board[y2][x2].name, self.chess_notation(x1, y1), self.chess_notation(x2, y2)))
+            Shell.add_log('{0} Moved: {1} > {2}'.format(self.board[y2][x2].name, self.chess_notation(x1, y1), self.chess_notation(x2, y2)))
         else:
             screen.addstr(19, 2, 'Niedozwolony ruch')
 
     def display(self):
-        self.draw_scene()
+        self.draw_indexes()
         for y in reversed(range(8)):
             for x in range(8):
                 Minion = self.board[y][x]
@@ -159,7 +171,7 @@ class ChessClass(object):
         else:
             return 1
 
-    def draw_scene(self):
+    def draw_indexes(self):
         for i in range(8):
             screen.addstr(1, 3 + (i * 2), chr(97 + i))  # 97 -> 'a' in ASCII code
             screen.addstr(10, 3 + (i * 2), chr(97 + i))
@@ -184,7 +196,7 @@ class Minion(object):
 
     def __del__(self):
         try:
-            Shell.add('Deleted {0}'.format(self.name))
+            Shell.add_log('Deleted {0}'.format(self.name))
         except Exception:
             pass
             # print('Deleted {0}'.format(self.name))
@@ -236,7 +248,6 @@ class CursorClass(object):
         self.sel = False
 
     def move(self, delta_x, delta_y):
-        # self.symbol = chr(screen.getch(self.y + self.shift_y, self.x + self.shift_x))
         self.x = (self.x + (delta_x) * 2) % self.screen_size_x
         self.y = (self.y - delta_y) % self.screen_size_y
         self.index_x = int(self.x / 2)
@@ -251,13 +262,13 @@ class CursorClass(object):
 
     def show_cursor_info(self):
         selected = Chess.board[self.index_y][self.index_x]
-        screen.addstr(1, 60, 'console coords: ')
-        screen.addstr(2, 60, '({0}, {1})'.format(self.x + self.shift_x, self.y + self.shift_y))
-        screen.addstr(3, 60, 'board indexes: ')
-        screen.addstr(4, 60, '({0}, {1})'.format(self.index_x, self.index_y))
-        screen.addstr(5, 60, 'chess notation: ')
-        screen.addstr(6, 60, '({0}, {1})'.format(chr(97 + self.index_x), 8 - self.index_y))
-        screen.addstr(7, 60, selected.info())
+        screen.addstr(1, 62, 'console coords: ')
+        screen.addstr(2, 62, '({0}, {1})'.format(self.x + self.shift_x, self.y + self.shift_y))
+        screen.addstr(3, 62, 'board indexes: ')
+        screen.addstr(4, 62, '({0}, {1})'.format(self.index_x, self.index_y))
+        screen.addstr(5, 62, 'chess notation: ')
+        screen.addstr(6, 62, '({0}, {1})'.format(chr(97 + self.index_x), 8 - self.index_y))
+        screen.addstr(7, 62, selected.info())
 
     def display(self):
         # screen.addstr(self.y + self.shift_y, self.x + self.shift_x, self.symbol, curses.color_pair(3))
@@ -317,22 +328,17 @@ Chess.spawn_minion('white', 'rook', 3, 0)
 Chess.spawn_minion('white', 'rook', 3, 1)
 key = 'something'
 Chess.display()
-i = 0
+Shell.print_info()
 
 try:
     while key != ord('p'):
         key = screen.getch()
         key_manager(key, Cursor)
         screen.clear()
-        screen.addstr(8, 60, 'Iteration:')
-        screen.addstr(8, 70, str(i))
-        if i == 15:
-            Chess.move(0, 0, 3, 0)
         Shell.display()
         Chess.display()
         Cursor.display()
         screen.refresh()
-        i += 1
 finally:
     curses.endwin()
     # print('Pympler is working...')
