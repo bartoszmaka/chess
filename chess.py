@@ -4,8 +4,8 @@ from itertools import chain
 # requires pympler
 # from pympler.tracker import SummaryTracker
 
-#    TODO
-#     * walidacja ruchów nie bangla
+#  TODO
+#     * walidacja kolizji nie bangla
 #     * definicje ruchów pozostałych pionków
 
 
@@ -98,7 +98,7 @@ class ChessClass(object):
                     screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(color))
 
     def move(self, x1, y1, x2, y2):
-        if self.move_valid(x1, y1, x2, y2) is True:
+        if self.move_valid(x1, y1, x2, y2):
             tmp = copy(self.board[y1][x1])
             self.board[y2][x2] = tmp
             self.board[y1][x1] = Empty()
@@ -113,16 +113,19 @@ class ChessClass(object):
         for direction, fields in moves.items():
             if delta in fields:
                 index = fields.index(delta)
-                return fields[:index]
+#                   możesz użyć Cursor.selected()
                 if self.collision(fields[:index]) is False and self.last_field_stuff(x1, y1, x2, y2) is True:
                     return True
+                else:
+                    return False
         else:
             screen.addstr(12, 2, 'Move is not valid')
             return False
 
     def collision(self, fields):
+        # Coś w tej funkcji definitywnie śmierdzi
         for field in fields[:-1]:
-            if not field.is_empty():
+            if not self.is_empty(field):
                 screen.addstr(12, 2, 'Collision detected')
                 return True
         else:
@@ -131,7 +134,8 @@ class ChessClass(object):
     def last_field_stuff(self, x1, y1, x2, y2):
         target = self.board[y2][x2]
         current = self.board[y1][x1]
-        if target.empty() is False and target.color is current.color:
+        if self.is_empty(target) is False and target.color is current.color:
+            screen.addstr(12, 2, "You can't attack your own pawns !")
             return False
         else:
             return True
@@ -176,8 +180,12 @@ class ChessClass(object):
             screen.addstr(2 + i, 1, str(8 - i))
             screen.addstr(2 + i, 19, str(8 - i))
 
-    def is_empty(field):
-        return True if field.name in ('empty', 'Empty') else False
+    def is_empty(self, field):
+        if type(field) is tuple:
+            x, y = field
+            return True if self.board[y][x].name in ('empty', 'Empty') else False
+        else:
+            return True if field.name in ('empty', 'Empty') else False
 
     def chess_notation(self, index_x, index_y):
         return ''.join([chr(97 + index_x), chr(8 - index_y + 48)])
@@ -307,7 +315,7 @@ def key_manager(key, CursorClass):
     elif key == ord('g'):
         Cursor.select()
     elif key == ord('h'):
-        if Cursor.any_selected():
+        if Cursor.any_selected() is True:
             Chess.move(*chain(Cursor.selected(), Cursor.pointed()))
 
 ###########################
