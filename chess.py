@@ -36,15 +36,14 @@ class Validator(object):
 
     def validate2(self):
         """ checks for collisions between pawn and target """
-        # if self.dir is not None:
-        #     i = self.moves[self.dir].index((self.x2, self.y2))
-        #     for field in self.moves[self.dir][:i - 1]:
-        #         if not Chess.is_empty(field):
-        #             return False
-        #     else:
-        #         return True
-        # return False
-        return True
+        if self.dir is not None:
+            i = self.moves[self.dir].index((self.x2, self.y2))
+            for field in self.moves[self.dir][:i]:
+                if not Chess.is_empty(field):
+                    return False
+            else:
+                return True
+        return False
 
     def validate3(self):
         """ checks if target field is not pawn with same color """
