@@ -4,6 +4,8 @@ from itertools import chain
 # requires pympler
 # from pympler.tracker import SummaryTracker
 
+# !! CONSOLE NEEDS TO BE AT LEAST 77x11 !!
+
 
 class Validator(object):
     def __init__(self, x1, y1, x2, y2):
@@ -189,7 +191,7 @@ class ChessClass(object):
             return True
 
     def spawn_validation(self, color, name, x, y):
-        if color not in ('white', 'White', 'black', 'Black'):
+        if color not in ('white', 'black'):
             screen.addstr(13, 2, 'Invalid color')
             return False
         elif x * y < 0 or x > 7 or y > 7:
@@ -406,7 +408,7 @@ class CursorClass(object):
     def display(self):
         # screen.addstr(self.y + self.shift_y, self.x + self.shift_x, self.symbol, curses.color_pair(3))
         self.show_cursor_info()
-        self.show_selected_minion_moves()
+        # self.show_selected_minion_moves()
 
     def select(self):
         if (self.index_x, self.index_y) == (self.selected_x, self.selected_y):
