@@ -149,25 +149,20 @@ class ChessClass(object):
                     screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(color))
 
     def move(self, x1, y1, x2, y2):
-        screen.addstr(22, 2, 'Validating move')
         Guardian = Validator(x1, y1, x2, y2)
         if Guardian.verdict() is True:
             tmp = copy(self.board[y1][x1])
             self.board[y2][x2] = tmp
             self.board[y1][x1] = Empty()
             Cursor.unselect()
-            screen.addstr(22, 2, 'OK')
             Shell.add_log('{0} Moved: {1} > {2}'.format(
                 self.board[y2][x2].name, self.chess_notation(x1, y1), self.chess_notation(x2, y2)))
-        else:
-            screen.addstr(22, 2, 'Invalid move')
         del Guardian
 
     def move_valid(self, Pawn, x, y):
         return True
 
     def validate_direction(self, Pawn, x, y):
-        screen.addstr(22, 2, 'Validating direction')
         pass
 
     def spawn_minion(self, color, name, x, y):
