@@ -296,7 +296,7 @@ class Bishop(Minion):
 class King(Minion):
     def __init__(self, color):
         super().__init__(color)
-        self.name = 'knight'
+        self.name = 'king'
         self.symbol = 'W'
 
     def define_valid_moves_mask(self):
