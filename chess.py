@@ -4,10 +4,6 @@ from itertools import chain
 # requires pympler
 # from pympler.tracker import SummaryTracker
 
-#  TODO
-#     * Validator -> validate2
-#     * King, Queen, Knight, Bishop, Pawn move definitions
-
 
 class Validator(object):
     def __init__(self, x1, y1, x2, y2):
@@ -100,7 +96,7 @@ class ChessClass(object):
         self.board = [[Empty() for i in range(8)] for i in range(8)]
         self.draw_indexes()
 
-    def init_pawns(self):
+    def init_pawns(self, nopawns=False):
         self.spawn_minion('white', 'rook', 0, 7)
         self.spawn_minion('white', 'knight', 1, 7)
         self.spawn_minion('white', 'bishop', 2, 7)
@@ -117,9 +113,10 @@ class ChessClass(object):
         self.spawn_minion('black', 'bishop', 5, 0)
         self.spawn_minion('black', 'knight', 6, 0)
         self.spawn_minion('black', 'rook', 7, 0)
-        for i in range(8):
-            self.spawn_minion('white', 'pawn', i, 6)
-            self.spawn_minion('black', 'pawn', i, 1)
+        if nopawns is False:
+            for i in range(8):
+                self.spawn_minion('white', 'pawn', i, 6)
+                self.spawn_minion('black', 'pawn', i, 1)
 
     def highlight_movable_fields(self, Pawn):
         a, b = Cursor.selected()
@@ -170,73 +167,30 @@ class ChessClass(object):
     def validate_direction(self, Pawn, x, y):
         screen.addstr(22, 2, 'Validating direction')
         pass
-##########################################
-#     def move(self, x1, y1, x2, y2):
-#         if self.move_valid(x1, y1, x2, y2):
-#             tmp = copy(self.board[y1][x1])
-#             self.board[y2][x2] = tmp
-#             self.board[y1][x1] = Empty()
-#             Cursor.unselect()
-#             Shell.add_log('{0} Moved: {1} > {2}'.format(
-#                 self.board[y2][x2].name, self.chess_notation(x1, y1), self.chess_notation(x2, y2)))
-#         else:
-#             screen.addstr(22, 2, 'Invalid move')
-#
-#     def move_valid(self, x1, y1, x2, y2):
-#         screen.addstr(22, 1, 'Validating move...')
-#         moves = self.board[y1][x1].valid_moves
-#         delta = (x2 - x1, y2 - y1)
-#         for direction, fields in moves.items():
-#             if delta in fields:
-#                 index = fields.index(delta)
-#                 screen.addstr(20, 2, 'kurwa')
-#                 screen.addstr(21, 2, str(fields[:index]))
-# #                   możesz użyć Cursor.selected()
-#                 if self.collision(fields[:index]) is False and self.last_field_stuff(x1, y1, x2, y2) is True:
-#                     return True
-#                 else:
-#                     return False
-#         else:
-#             screen.addstr(12, 2, 'Move is not valid')
-#             return False
-#
-#     def collision(self, fields):
-#         # Coś w tej funkcji definitywnie śmierdzi
-#         for field in fields[:-1]:
-#             if not self.is_empty(field):
-#                 screen.addstr(12, 2, 'Collision detected')
-#                 return True
-#         else:
-#             return False
-#
-#     def last_field_stuff(self, x1, y1, x2, y2):
-#         target = self.board[y2][x2]
-#         current = self.board[y1][x1]
-#         if self.is_empty(target) is False and target.color is current.color:
-#             screen.addstr(12, 2, "You can't attack your own pawns !")
-#             return False
-#         else:
-#             return True
-##############################################
 
     def spawn_minion(self, color, name, x, y):
         if self.spawn_validation(color, name, x, y) is False:
             return False
         else:
-            if name is 'rook' or name is 'Rook':
+            if name is 'rook':
                 self.board[y][x] = Rook(color)
-                Shell.add_log('Created Minion: {0} {1} at {2}'.format(
-                    self.board[y][x].color, self.board[y][x].name, self.chess_notation(x, y)))
-                return True
+            elif name is 'bishop':
+                self.board[y][x] = Bishop(color)
+            elif name is 'queen':
+                self.board[y][x] = Queen(color)
+            elif name is 'knight':
+                self.board[y][x] = Knight(color)
+            elif name is 'king':
+                self.board[y][x] = King(color)
+            elif name is 'pawn':
+                self.board[y][x] = Pawn(color)
+            Shell.add_log('Created Minion: {0} {1} at {2}'.format(
+                self.board[y][x].color, self.board[y][x].name, self.chess_notation(x, y)))
+            return True
 
     def spawn_validation(self, color, name, x, y):
         if color not in ('white', 'White', 'black', 'Black'):
             screen.addstr(13, 2, 'Invalid color')
-            return False
-        elif name not in (
-                'Rook', 'rook', 'Bishop', 'bishop', 'Knight', 'knight',
-                'Queen', 'queen', 'King', 'king', 'Pawn', 'pawn'):
-            screen.addstr(13, 2, 'Invalid minion name')
             return False
         elif x * y < 0 or x > 7 or y > 7:
             screen.addstr(13, 2, 'Out of range')
@@ -278,6 +232,7 @@ class ChessClass(object):
 class Minion(object):
     def __init__(self, color=None):
         self.color = color
+        # self.valid_moves = {}
         self.define_valid_moves_mask()
 
     def info(self):
@@ -313,10 +268,100 @@ class Rook(Minion):
     def define_valid_moves_mask(self):
         self.valid_moves = {'N': [], 'S': [], 'E': [], 'W': []}
         for i in range(1, 8):
-            self.valid_moves['N'].append((-i, 0))
+            self.valid_moves['N'].append((0, -i))
             self.valid_moves['E'].append((i, 0))
             self.valid_moves['S'].append((0, i))
-            self.valid_moves['W'].append((0, -i))
+            self.valid_moves['W'].append((-i, 0))
+
+
+###########################
+class Bishop(Minion):
+    def __init__(self, color):
+        super().__init__(color)
+        self.name = 'bishop'
+        self.symbol = 'B'
+
+    def define_valid_moves_mask(self):
+        self.valid_moves = {'NE': [], 'SE': [], 'NW': [], 'SW': []}
+        for i in range(1, 8):
+            self.valid_moves['NE'].append((i, -i))
+            self.valid_moves['SE'].append((i, i))
+            self.valid_moves['NW'].append((-i, -i))
+            self.valid_moves['SW'].append((-i, i))
+
+
+###########################
+class King(Minion):
+    def __init__(self, color):
+        super().__init__(color)
+        self.name = 'knight'
+        self.symbol = 'W'
+
+    def define_valid_moves_mask(self):
+        self.valid_moves = {'N': [], 'S': [], 'E': [], 'W': [], 'NE': [], 'SE': [], 'NW': [], 'SW': []}
+        for i in range(1, 2):
+            self.valid_moves['N'].append((0, -i))
+            self.valid_moves['E'].append((i, 0))
+            self.valid_moves['S'].append((0, i))
+            self.valid_moves['W'].append((-i, 0))
+            self.valid_moves['NE'].append((i, -i))
+            self.valid_moves['SE'].append((i, i))
+            self.valid_moves['NW'].append((-i, -i))
+            self.valid_moves['SW'].append((-i, i))
+
+
+###########################
+class Queen(Minion):
+    def __init__(self, color):
+        super().__init__(color)
+        self.name = 'queen'
+        self.symbol = 'Q'
+
+    def define_valid_moves_mask(self):
+        self.valid_moves = {'N': [], 'S': [], 'E': [], 'W': [], 'NE': [], 'SE': [], 'NW': [], 'SW': []}
+        for i in range(1, 8):
+            self.valid_moves['N'].append((0, -i))
+            self.valid_moves['E'].append((i, 0))
+            self.valid_moves['S'].append((0, i))
+            self.valid_moves['W'].append((-i, 0))
+            self.valid_moves['NE'].append((i, -i))
+            self.valid_moves['SE'].append((i, i))
+            self.valid_moves['NW'].append((-i, -i))
+            self.valid_moves['SW'].append((-i, i))
+
+
+###########################
+class Pawn(Minion):
+    def __init__(self, color):
+        super().__init__(color)
+        self.name = 'pawn'
+        self.symbol = 'P'
+
+    def define_valid_moves_mask(self):
+        self.valid_moves = {}
+        if self.color is 'white':
+            self.valid_moves['N'] = [(0, -1)]
+        else:
+            self.valid_moves['S'] = [(0, 1)]
+
+
+###########################
+class Knight(Minion):
+    def __init__(self, color):
+        super().__init__(color)
+        self.name = 'knight'
+        self.symbol = 'K'
+
+    def define_valid_moves_mask(self):
+        self.valid_moves = {'N': [], 'S': [], 'E': [], 'W': [], 'NE': [], 'SE': [], 'NW': [], 'SW': []}
+        self.valid_moves['N'] = [(1, 2)]
+        self.valid_moves['E'] = [(2, 1)]
+        self.valid_moves['S'] = [(2, -1)]
+        self.valid_moves['W'] = [(1, -2)]
+        self.valid_moves['NE'] = [(-1, -2)]
+        self.valid_moves['SE'] = [(-2, -1)]
+        self.valid_moves['NW'] = [(-2, 1)]
+        self.valid_moves['SW'] = [(-1, 2)]
 
 
 ###########################
@@ -412,12 +457,13 @@ curses.init_pair(9, curses.COLOR_CYAN, -1)
 Shell = ShellClass()
 Cursor = CursorClass()
 Chess = ChessClass()
-Chess.spawn_minion('white', 'rook', 3, 5)
-Chess.spawn_minion('black', 'rook', 1, 4)
-Chess.spawn_minion('black', 'rook', 0, 0)
-Chess.spawn_minion('black', 'rook', 7, 7)
-Chess.spawn_minion('white', 'rook', 3, 0)
-Chess.spawn_minion('white', 'rook', 3, 1)
+# Chess.spawn_minion('white', 'rook', 3, 5)
+# Chess.spawn_minion('black', 'rook', 1, 4)
+# Chess.spawn_minion('black', 'bishop', 0, 0)
+# Chess.spawn_minion('black', 'rook', 7, 7)
+# Chess.spawn_minion('white', 'bishop', 3, 0)
+# Chess.spawn_minion('white', 'rook', 3, 1)
+Chess.init_pawns(nopawns=True)
 key = 'something'
 Chess.display()
 Shell.print_info()
