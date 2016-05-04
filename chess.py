@@ -5,8 +5,55 @@ from itertools import chain
 # from pympler.tracker import SummaryTracker
 
 #  TODO
-#     * walidacja kolizji nie bangla
-#     * definicje ruchów pozostałych pionków
+#     * Validator -> validate2
+#     * King, Queen, Knight, Bishop, Pawn move definitions
+
+
+class Validator(object):
+    def __init__(self, x1, y1, x2, y2):
+        self.Pawn = Chess.board[y1][x1]
+        self.target_color = Chess.board[y2][x2].color
+        self.dir = None
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+        self.moves = {}
+        self.apply_mask()
+
+    def apply_mask(self):
+        for key, value in self.Pawn.valid_moves.items():
+            self.moves[key] = [(v[0] + self.x1, v[1] + self.y1) for v in value]
+
+    def validate1(self):
+        """ checks if pawn is allowed to move like this """
+        for key in self.moves:
+            if (self.x2, self.y2) in self.moves[key]:
+                self.dir = key
+                return True
+        else:
+            return False
+
+    def validate2(self):
+        """ checks for collisions between pawn and target """
+        # if self.dir is not None:
+        #     return True
+        # else:
+        #     return False
+        return True
+
+    def validate3(self):
+        """ checks if target field is not pawn with same color """
+        if self.target_color == self.Pawn.color:
+            return False
+        else:
+            return True
+
+    def verdict(self):
+        if self.validate1() is True and self.validate2() is True and self.validate3() is True:
+            return True
+        else:
+            return False
 
 
 class ShellClass(object):
@@ -84,8 +131,21 @@ class ChessClass(object):
             self.spawn_minion('white', 'pawn', i, 6)
             self.spawn_minion('black', 'pawn', i, 1)
 
+    def highlight_movable_fields(self, Pawn):
+        a, b = Cursor.selected()
+        moves = (0, 0)
+        if Pawn.name is not 'empty':
+            moves = chain.from_iterable(Pawn.valid_moves.values())
+            moves = [(m[0] + a, m[1] + b) for m in moves]
+            return moves
+        return []
+
     def display(self):
         self.draw_indexes()
+        moves = []
+        if Cursor.sel:
+            a, b = Cursor.selected()
+            moves = self.highlight_movable_fields(self.board[b][a])
         for y in reversed(range(8)):
             for x in range(8):
                 Minion = self.board[y][x]
@@ -94,51 +154,80 @@ class ChessClass(object):
                     screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(color) | curses.A_BOLD)
                 elif (x, y) == Cursor.selected():
                     screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(4) | curses.A_BOLD)
+                elif (x, y) in (moves):
+                    screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(9))
                 else:
                     screen.addstr(2 + y, 3 + (x * 2), Minion.symbol, curses.color_pair(color))
 
     def move(self, x1, y1, x2, y2):
-        if self.move_valid(x1, y1, x2, y2):
+        screen.addstr(22, 2, 'Validating move')
+        Guardian = Validator(x1, y1, x2, y2)
+        if Guardian.verdict() is True:
             tmp = copy(self.board[y1][x1])
             self.board[y2][x2] = tmp
             self.board[y1][x1] = Empty()
             Cursor.unselect()
+            screen.addstr(22, 2, 'OK')
             Shell.add_log('{0} Moved: {1} > {2}'.format(
                 self.board[y2][x2].name, self.chess_notation(x1, y1), self.chess_notation(x2, y2)))
-
-    def move_valid(self, x1, y1, x2, y2):
-        screen.addstr(12, 1, 'Validating move...')
-        moves = self.board[y1][x1].valid_moves
-        delta = (x2 - x1, y2 - y1)
-        for direction, fields in moves.items():
-            if delta in fields:
-                index = fields.index(delta)
-#                   możesz użyć Cursor.selected()
-                if self.collision(fields[:index]) is False and self.last_field_stuff(x1, y1, x2, y2) is True:
-                    return True
-                else:
-                    return False
         else:
-            screen.addstr(12, 2, 'Move is not valid')
-            return False
+            screen.addstr(22, 2, 'Invalid move')
+        del Guardian
 
-    def collision(self, fields):
-        # Coś w tej funkcji definitywnie śmierdzi
-        for field in fields[:-1]:
-            if not self.is_empty(field):
-                screen.addstr(12, 2, 'Collision detected')
-                return True
-        else:
-            return False
+    def move_valid(self, Pawn, x, y):
+        return True
 
-    def last_field_stuff(self, x1, y1, x2, y2):
-        target = self.board[y2][x2]
-        current = self.board[y1][x1]
-        if self.is_empty(target) is False and target.color is current.color:
-            screen.addstr(12, 2, "You can't attack your own pawns !")
-            return False
-        else:
-            return True
+    def validate_direction(self, Pawn, x, y):
+        screen.addstr(22, 2, 'Validating direction')
+        pass
+##########################################
+#     def move(self, x1, y1, x2, y2):
+#         if self.move_valid(x1, y1, x2, y2):
+#             tmp = copy(self.board[y1][x1])
+#             self.board[y2][x2] = tmp
+#             self.board[y1][x1] = Empty()
+#             Cursor.unselect()
+#             Shell.add_log('{0} Moved: {1} > {2}'.format(
+#                 self.board[y2][x2].name, self.chess_notation(x1, y1), self.chess_notation(x2, y2)))
+#         else:
+#             screen.addstr(22, 2, 'Invalid move')
+#
+#     def move_valid(self, x1, y1, x2, y2):
+#         screen.addstr(22, 1, 'Validating move...')
+#         moves = self.board[y1][x1].valid_moves
+#         delta = (x2 - x1, y2 - y1)
+#         for direction, fields in moves.items():
+#             if delta in fields:
+#                 index = fields.index(delta)
+#                 screen.addstr(20, 2, 'kurwa')
+#                 screen.addstr(21, 2, str(fields[:index]))
+# #                   możesz użyć Cursor.selected()
+#                 if self.collision(fields[:index]) is False and self.last_field_stuff(x1, y1, x2, y2) is True:
+#                     return True
+#                 else:
+#                     return False
+#         else:
+#             screen.addstr(12, 2, 'Move is not valid')
+#             return False
+#
+#     def collision(self, fields):
+#         # Coś w tej funkcji definitywnie śmierdzi
+#         for field in fields[:-1]:
+#             if not self.is_empty(field):
+#                 screen.addstr(12, 2, 'Collision detected')
+#                 return True
+#         else:
+#             return False
+#
+#     def last_field_stuff(self, x1, y1, x2, y2):
+#         target = self.board[y2][x2]
+#         current = self.board[y1][x1]
+#         if self.is_empty(target) is False and target.color is current.color:
+#             screen.addstr(12, 2, "You can't attack your own pawns !")
+#             return False
+#         else:
+#             return True
+##############################################
 
     def spawn_minion(self, color, name, x, y):
         if self.spawn_validation(color, name, x, y) is False:
