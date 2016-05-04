@@ -27,7 +27,7 @@ class Validator(object):
 
     def validate1(self):
         """ checks if pawn is allowed to move like this """
-        for key in self.moves:
+        for key in self.moves.keys():
             if (self.x2, self.y2) in self.moves[key]:
                 self.dir = key
                 return True
@@ -37,9 +37,13 @@ class Validator(object):
     def validate2(self):
         """ checks for collisions between pawn and target """
         # if self.dir is not None:
-        #     return True
-        # else:
-        #     return False
+        #     i = self.moves[self.dir].index((self.x2, self.y2))
+        #     for field in self.moves[self.dir][:i - 1]:
+        #         if not Chess.is_empty(field):
+        #             return False
+        #     else:
+        #         return True
+        # return False
         return True
 
     def validate3(self):
@@ -89,19 +93,6 @@ class ShellClass(object):
         self.add_log('wsad moves cursor')
         self.add_log("press 'g' to select field")
         self.add_log("press 'h' to move selected pawn to cursor current location")
-
-    # def input(self):
-    #     self.mode = 'Input'
-    #     key = None
-    #     while key is not 27:    # ESC
-    #         if key is 127:      # Backspace
-    #             try:
-    #                 self.input.pop()
-    #             except IndexError:
-    #                 pass
-    #         else:
-    #             self.input.append(chr(key))
-    #     self.mode = 'Cursor'
 
 
 ###########################
@@ -270,6 +261,7 @@ class ChessClass(object):
             screen.addstr(2 + i, 19, str(8 - i))
 
     def is_empty(self, field):
+        """ expects to get coords tuple or pawn object """
         if type(field) is tuple:
             x, y = field
             return True if self.board[y][x].name in ('empty', 'Empty') else False
@@ -321,7 +313,7 @@ class Rook(Minion):
 
     def define_valid_moves_mask(self):
         self.valid_moves = {'N': [], 'S': [], 'E': [], 'W': []}
-        for i in range(8):
+        for i in range(1, 8):
             self.valid_moves['N'].append((-i, 0))
             self.valid_moves['E'].append((i, 0))
             self.valid_moves['S'].append((0, i))
