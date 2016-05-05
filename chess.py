@@ -44,7 +44,7 @@ class Validator(object):
         return False
 
     def validate3(self):
-        """ checks if target field is not pawn with same color """
+        """ checks if last field has different color """
         if self.target_color == self.Pawn.color:
             return False
         else:
